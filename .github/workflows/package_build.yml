@@ -54,7 +54,7 @@ jobs:
         GIT_ASKPASS: /home/aca/git_pass.py
     - name: Build meta-packages
       if: ${{ inputs.meta_packages }}
-      id: build
+      id: build_plus
       run: |
         for package in ${{ inputs.meta_packages }}; do
           docker run --rm  --name builder -v $GITHUB_WORKSPACE:/github/workspace -w /github/workspace \
