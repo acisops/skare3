@@ -2,16 +2,16 @@ name: Build Ska Package
 on:
   workflow_call:
     inputs:
-      repository:
-        description: Repository to build from
+      package:
+        description: Package to build
         required: false
         type: string
-        default: ${GITHUB_REPOSITORY}
+        default: ""
       meta_packages:
         description: skare3 meta-packages to build
         required: false
         type: string
-        default: ${GITHUB_REPOSITORY}
+        default: ""
       tag:
         description: tag/ref/commit-sha
         required: false
@@ -22,6 +22,11 @@ on:
         required: false
         type: boolean
         default: false
+      options:
+        description: other options
+        required: false
+        type: string
+        default: ""
     secrets:
       CONDA_PASSWORD:
         required: true
@@ -40,13 +45,13 @@ jobs:
     - name: Pull Docker image
       run: docker pull docker.pkg.github.com/sot/skare3/centos7-builder:latest
     - name: Build package
-      if: ${{ inputs.repository }}
+      if: ${{ inputs.package }}
       id: build
       run: >
         docker run --rm  --name builder -v $GITHUB_WORKSPACE:/github/workspace -w /github/workspace
         -e CONDA_PASSWORD -e GIT_USERNAME -e GIT_PASSWORD
         docker.pkg.github.com/sot/skare3/centos7-builder:latest
-        ${{ inputs.repository }} --tag ${{ inputs.tag }}
+        ${{ inputs.package }} --tag ${{ inputs.tag }}
       env:
         CONDA_PASSWORD: ${{ secrets.CONDA_PASSWORD }}
         GIT_USERNAME: chandra-xray
@@ -61,7 +66,7 @@ jobs:
           -e CONDA_PASSWORD -e GIT_USERNAME -e GIT_PASSWORD \
           docker.pkg.github.com/sot/skare3/centos7-builder:latest \
           ${package} --tag ${{ inputs.tag }} --skare3-branch ${{ inputs.tag }} \
-          --arch-specific ${{needs.sanity_check.outputs.overwrite_flag}};
+          ${{ inputs.options }};
         done;
       env:
         CONDA_PASSWORD: ${{ secrets.CONDA_PASSWORD }}
@@ -107,9 +112,9 @@ jobs:
       run: conda install setuptools_scm gitpython conda-build jinja2 pyyaml python=3.8 numpy packaging
     - name: Build Package
       shell: bash -l {0}
-      if: ${{ inputs.repository }}
+      if: ${{ inputs.package }}
       run: |
-        python skare3_tools/actions/build/files/build.py --arch-specific ${{ inputs.repository }} --tag ${{ inputs.tag }}
+        python skare3_tools/actions/build/files/build.py --arch-specific ${{ inputs.package }} --tag ${{ inputs.tag }}
       env:
         CONDA_PASSWORD: ${{ secrets.CONDA_PASSWORD }}
         GIT_USERNAME: chandra-xray
@@ -122,7 +127,7 @@ jobs:
         for package in ${{ inputs.meta_packages }}; do
           python skare3_tools/actions/build/files/build.py \
           ${package} --tag ${{ inputs.tag }} --skare3-branch ${{ inputs.tag }} \
-          --arch-specific ${{needs.sanity_check.outputs.overwrite_flag}};
+          --arch-specific ${{ inputs.options }};
         done;
       env:
         CONDA_PASSWORD: ${{ secrets.CONDA_PASSWORD }}
